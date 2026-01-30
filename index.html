@@ -1,208 +1,166 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gün Sonu Checklist</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Checklist</title>
 
-  <!-- SortableJS -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<!-- Drag için -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-    }
+<style>
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
 
-    h1 {
-      text-align: center;
-    }
+body {
+  background:#f4f4f4;
+  padding:20px;
+  text-align:center;
+}
 
-    .main-tabs, .sub-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
+h1 { margin-bottom:20px; }
 
-    button {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      background: #ddd;
-      font-weight: bold;
-    }
+.main-tabs, .sub-tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
 
-    button.active {
-      background: #333;
-      color: #fff;
-    }
+button {
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  background:#ddd;
+  cursor:pointer;
+}
 
-    .app {
-      max-width: 420px;
-      margin: auto;
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-    }
+button.active {
+  background:#333;
+  color:#fff;
+}
 
-    input {
-      width: 70%;
-      padding: 10px;
-    }
+.input-area {
+  display:flex;
+  gap:8px;
+  margin:15px auto;
+  max-width:420px;
+}
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin-top: 10px;
-    }
+input {
+  flex:1;
+  padding:10px;
+  font-size:16px;
+}
 
-    li {
-      display: flex;
-      align-items: center;
-      padding: 10px 5px;
-      border-bottom: 1px solid #eee;
-    }
+ul {
+  list-style:none;
+  padding:0;
+  max-width:420px;
+  margin:auto;
+}
 
-    .handle {
-      cursor: grab;
-      margin-right: 8px;
-    }
+li {
+  background:#fff;
+  padding:10px;
+  margin-bottom:8px;
+  border-radius:6px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
 
-    .text {
-      flex: 1;
-    }
+.actions span {
+  margin-left:8px;
+  cursor:pointer;
+  opacity:.4;
+  font-size:18px;
+}
 
-    .status {
-      display: flex;
-      gap: 6px;
-      margin-left: auto;
-    }
-
-    .status span {
-      opacity: 0.25;
-      cursor: pointer;
-    }
-
-    .status span.active {
-      opacity: 1;
-    }
-
-    .del {
-      margin-left: 6px;
-    }
-  </style>
+.actions span.active { opacity:1; }
+.ok.active { color:green; }
+.no.active { color:red; }
+</style>
 </head>
+
 <body>
 
-<h1>✔ Gün Sonu Checklist</h1>
+<h1>✔ My Checklist</h1>
 
 <div class="main-tabs">
-  <button data-main="work" class="active">İş</button>
-  <button data-main="personal">Özel Hayat</button>
-  <button data-main="nutrition">Beslenme</button>
+  <button class="main active" data-mode="is">İş</button>
+  <button class="main" data-mode="ozel">Özel Hayat</button>
+  <button class="main" data-mode="beslenme">Beslenme</button>
 </div>
 
-<div class="sub-tabs" id="subTabs">
-  <button data-sub="daily" class="active">Günlük</button>
-  <button data-sub="weekly">Haftalık</button>
+<div class="sub-tabs">
+  <button class="sub active" data-time="gunluk">Günlük</button>
+  <button class="sub" data-time="haftalik">Haftalık</button>
 </div>
 
-<div class="app">
-  <input id="itemInput" placeholder="Yeni görev..." />
+<div class="input-area">
+  <input id="taskInput" placeholder="Yeni görev yaz...">
   <button id="addBtn">Ekle</button>
-  <ul id="list"></ul>
 </div>
+
+<ul id="list"></ul>
 
 <script>
-const listEl = document.getElementById("list");
-const input = document.getElementById("itemInput");
-const addBtn = document.getElementById("addBtn");
-const mainTabs = document.querySelectorAll(".main-tabs button");
-const subTabs = document.querySelectorAll(".sub-tabs button");
-const subTabsContainer = document.getElementById("subTabs");
+let mode="is", time="gunluk";
+let tasks = JSON.parse(localStorage.getItem("myChecklist")) || [];
 
-let main = "work";
-let sub = "daily";
+const input = document.getElementById("taskInput");
+const list = document.getElementById("list");
 
-let data = JSON.parse(localStorage.getItem("checklist_live")) || {
-  work_daily: [],
-  work_weekly: [],
-  personal_daily: [],
-  personal_weekly: [],
-  nutrition: []
+function save(){
+  localStorage.setItem("myChecklist", JSON.stringify(tasks));
+}
+
+function render(){
+  list.innerHTML="";
+  tasks.filter(t=>t.mode===mode && t.time===time).forEach(t=>{
+    const li=document.createElement("li");
+    li.innerHTML=`
+      <span>${t.text}</span>
+      <div class="actions">
+        <span class="ok ${t.status==='ok'?'active':''}">✅</span>
+        <span class="no ${t.status==='no'?'active':''}">❌</span>
+        <span class="del">✖</span>
+      </div>`;
+    
+    li.querySelector(".ok").onclick=()=>{t.status="ok";save();render();}
+    li.querySelector(".no").onclick=()=>{t.status="no";save();render();}
+    li.querySelector(".del").onclick=()=>{tasks=tasks.filter(x=>x!==t);save();render();}
+    list.appendChild(li);
+  });
+}
+
+document.getElementById("addBtn").onclick=()=>{
+  if(!input.value.trim())return;
+  tasks.push({text:input.value,mode,time,status:null});
+  input.value="";
+  save();render();
 };
 
-function key() {
-  return main === "nutrition" ? "nutrition" : `${main}_${sub}`;
-}
-
-function save() {
-  localStorage.setItem("checklist_live", JSON.stringify(data));
-}
-
-function render() {
-  listEl.innerHTML = "";
-
-  data[key()].forEach((item, i) => {
-    const li = document.createElement("li");
-
-    li.innerHTML = `
-      <span class="handle">≡</span>
-      <span class="text">${item.text}</span>
-      <div class="status">
-        <span class="${item.status === 'success' ? 'active' : ''}" onclick="setStatus(${i}, 'success')">✅</span>
-        <span class="${item.status === 'fail' ? 'active' : ''}" onclick="setStatus(${i}, 'fail')">❌</span>
-      </div>
-      <button class="del" onclick="removeItem(${i})">✖</button>
-    `;
-
-    listEl.appendChild(li);
-  });
-
-  Sortable.create(listEl, {
-    handle: ".handle",
-    animation: 150
-  });
-}
-
-function addItem() {
-  if (!input.value.trim()) return;
-  data[key()].push({ text: input.value.trim(), status: null });
-  input.value = "";
-  save();
-  render();
-}
-
-function setStatus(i, status) {
-  data[key()][i].status = status;
-  save();
-  render();
-}
-
-function removeItem(i) {
-  data[key()].splice(i, 1);
-  save();
-  render();
-}
-
-addBtn.onclick = addItem;
-input.onkeydown = e => e.key === "Enter" && addItem();
-
-mainTabs.forEach(b => b.onclick = () => {
-  mainTabs.forEach(x => x.classList.remove("active"));
-  b.classList.add("active");
-  main = b.dataset.main;
-  subTabsContainer.style.display = main === "nutrition" ? "none" : "flex";
-  render();
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter") document.getElementById("addBtn").click();
 });
 
-subTabs.forEach(b => b.onclick = () => {
-  subTabs.forEach(x => x.classList.remove("active"));
-  b.classList.add("active");
-  sub = b.dataset.sub;
-  render();
+document.querySelectorAll(".main").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".main").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    mode=b.dataset.mode;
+    render();
+  }
+});
+
+document.querySelectorAll(".sub").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".sub").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    time=b.dataset.time;
+    render();
+  }
 });
 
 render();
